@@ -62,9 +62,10 @@
 				timeNow = newTime;
 				framesThisSecond++;
 
-				processInput();
+				
 				let numUpdates=0;
 				while(delta >= desiredTimestep){
+					processInput();
 					update(desiredFPS/1000);
 					delta -= desiredTimestep;
 					numUpdates++;
