@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+	</head>
+	<body>
+
+		<input type="range"  min="1" max="144" value="144" onchange="updateFrameRate(this.value)"/>
+		<span id="FrameRateLabel">144</span>
+		<canvas id="canvas" width="640" height="640" style="border:1px solid #000;">
+		Your browser does not support the canvas element.
+
+		<script type="text/javascript" src="Character.js"></script>
+		<script type="text/javascript" src="Map.js"></script>
+		
+		<script type="text/javascript">
+
+			var maxFps = 144;
+			function updateFrameRate(newFrameRate){
+				maxFps = newFrameRate;
+				document.getElementById("FrameRateLabel").innerHTML=maxFps;
+			}
+
+		$(window).bind("load", function() {
+			let canvas = document.getElementById("canvas");
+			let context = canvas.getContext("2d");
+
+			let keys={};
+			window.addEventListener("keydown", function(event){
+				if(event.defaultPrevented) return;
+				keys[event.key] = true;
+				event.preventDefault()
+			},true);
+			window.addEventListener("keyup", function(event){
+				if(event.defaultPrevented) return;
+				keys[event.key] = false;
+				event.preventDefault()
+			},true);
+
+			let map = new Map(canvas,context);
+			let character = new Character(canvas,context,map,350,620,20,null);
+			let fps =0,framesThisSecond = 0,timeNow = Date.now(),delta=0;
+			const desiredFPS =60, desiredTimestep=1000/60; 
+
+			setInterval(function() { fps = framesThisSecond; framesThisSecond = 0; }, 1000);
+			//start drawing the first frame
+			requestAnimationFrame(mainLoop);
+			
+			//Game Loop
+			function mainLoop() {
+
+				let newTime = Date.now();
+				
+				//To limit fps
+				if(newTime < timeNow + (1000/maxFps)){
+					requestAnimationFrame(mainLoop);
+					return;
+				}
+				
+				delta += newTime - timeNow;
+				timeNow = newTime;
+				framesThisSecond++;
+
+				processInput();
+				let numUpdates=0;
+				while(delta >= desiredTimestep){
+					update(desiredFPS/1000);
+					delta -= desiredTimestep;
+					numUpdates++;
+					if(numUpdates>=100){
+						character.panic();
+						break;
+					}
+				}
+				draw();
+				requestAnimationFrame(mainLoop);
+			}
+
+
+			function processInput(){
+				//Jumping
+				//w or upArrow + space
+				let dummy = keys["w"]
+				if((keys["w"]||keys["ArrowUp"])&&keys[" "]){
+					character.jump(350);
+				}else
+				//s or downArrow + space
+				if((keys["s"]||keys["ArrowDown"])&&keys[" "]){
+					character.jump(250);
+				}else 
+				//just space
+				if (keys[" "]){
+					character.jump(300);
+				}
+				//a or leftArrow
+				if(keys["a"]||keys["ArrowLeft"]){
+					character.moveVelocity(-25)
+				}
+				//d or rightArrow
+				if(keys["d"]||keys["ArrowRight"]){
+					character.moveVelocity(25)
+				}
+				if(keys["Shift"]){
+					character.attack()
+				}			
+			}
+
+			function update(delta) {
+				character.update(delta);
+			}
+			
+			function draw() {
+				context.clearRect(0, 0, canvas.width, canvas.height);			
+				context.save();
+				character.draw();
+				map.draw();
+				context.fillText("FPS: "+fps,10,10);
+				context.fillText("WINNER!",50,40);
+				context.restore();
+			}
+		
+		});
+	</script>
+	</body>
+</html>
